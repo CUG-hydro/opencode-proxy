@@ -11,6 +11,9 @@ def load_env_file():
                     key, value = line.split("=", 1)
                     key = key.strip()
                     value = value.strip()
+                    # Strip matching surrounding quotes (".env" convention).
+                    if len(value) >= 2 and value[0] == value[-1] and value[0] in ('"', "'"):
+                        value = value[1:-1]
                     if key not in os.environ:
                         os.environ[key] = value
 
@@ -68,7 +71,12 @@ ROUTES = load_routes()
 
 
 def get_model_config(model_id: str) -> dict:
-    """Return merged config for model_id with sensible defaults."""
-    cfg = MODELS.get(model_id, {})
+    """Return merged config for model_id with sensible defaults.
+
+    Strips Claude Code suffix tags like ``[1m]`` (1M context) before lookup,
+    so ``deepseek-v4-pro[1m]`` resolves to the ``deepseek-v4-pro`` entry.
+    """
+    base = model_id.split("[", 1)[0]
+    cfg = MODELS.get(base, {})
     defaults = {"endpoint": API_BASE_OPENAI, "protocol": "openai"}
     return {**defaults, **cfg}
